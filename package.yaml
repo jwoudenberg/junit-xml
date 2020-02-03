@@ -15,6 +15,7 @@ extra-doc-files:
 library:
   dependencies:
   - base >= 4.10.1.0 && < 5
+  - text
   - xml-conduit
   exposed-modules:
   - Text.XML.JUnit
