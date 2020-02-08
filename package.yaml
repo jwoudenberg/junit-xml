@@ -12,11 +12,23 @@ github: jwoudenberg/junit-xml
 extra-doc-files:
 - README.md
 - CHANGELOG.md
+data-files:
+- test/sample-report.xml
 library:
   dependencies:
   - base >= 4.10.1.0 && < 5
   - text
-  - xml-conduit
+  - xml-conduit >= 1.5.0 && < 1.10
   exposed-modules:
   - Text.XML.JUnit
   source-dirs: src
+tests:
+  spec:
+    dependencies:
+    - base
+    - junit-xml
+    - tasty-golden >= 2.3 && < 2.4
+    - tasty >= 1.1 && < 1.3
+    main: Main.hs
+    source-dirs:
+    - test
