@@ -197,7 +197,7 @@ skipped name =
 --           & 'stdout' "Running test..."
 --           & 'stderr' "Test failed: expected 3 slices of pizza but got one."
 --           & 'failureMessage' "Not enough pizza"
---           & 'failureStackTrace' ["Pizza", "Pizzeria", "Italy"]
+--           & 'failureStackTrace' ["pizza", "pizzeria", "italy"]
 --           & 'time' 0.08
 --           & 'inSuite' "Test suite"
 --       ]
@@ -222,7 +222,7 @@ failed name =
 --           & 'stdout' "Running test..."
 --           & 'stderr' "Unexpected exception: BedTime"
 --           & 'errorMessage' "Operation canceled due to BedTimeOut"
---           & 'errorStackTrace' ["Bed", "Sleep", "Night"]
+--           & 'errorStackTrace' ["bed", "sleep", "night"]
 --           & 'time' 0.08
 --           & 'inSuite' "Test suite"
 --       ]
@@ -295,7 +295,7 @@ failureMessage msg test =
 --
 --     'writeXmlReport' "report.xml"
 --       [ failed "A failing test"
---           & failureStackTrace ["AnkleClass", "LegClass", "LimbClass"]
+--           & failureStackTrace ["ankleClass", "legClass", "limbClass"]
 --           & 'inSuite' "Test suite"
 --       ]
 -- @
@@ -324,7 +324,7 @@ instance Outcome Errored where
 --
 --     'writeXmlReport' "report.xml"
 --       [ errored "A test that threw an error"
---           & errorMessage "TooMuchNetflixException"
+--           & errorMessage "Too much Netflix"
 --           & 'inSuite' "Test suite"
 --       ]
 -- @
