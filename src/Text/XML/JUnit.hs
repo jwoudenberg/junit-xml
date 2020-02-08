@@ -3,15 +3,22 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- |
+-- A module for producing JUnit style XML reports, for consumption by CI
+-- platforms like Jenkins.
+-- Please see the README at <https://github.com/jwoudenberg/junit-xml>.
 module Text.XML.JUnit
-  ( writeXmlReport,
-    TestSuite,
-    inSuite,
-    TestCase,
+  ( -- * Writing test reports
+    writeXmlReport,
+
+    -- * Test report constructors
     passed,
     skipped,
     failed,
     errored,
+    inSuite,
+
+    -- * Adding test report details
     stdout,
     stderr,
     time,
@@ -19,6 +26,10 @@ module Text.XML.JUnit
     failureStackTrace,
     errorMessage,
     errorStackTrace,
+
+    -- * Helper types
+    TestReport,
+    TestSuite,
   )
 where
 
@@ -32,52 +43,24 @@ import GHC.Exts (fromList)
 import qualified Text.XML as XML
 
 -- | This function writes an xml report to the provided path.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     writeXmlReport "report.xml"
+--       [ 'passed' "A passing test"
+--           & 'inSuite' "Test suite"
+--       , 'failed' "A failing test"
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
 writeXmlReport :: FilePath -> [TestSuite] -> IO ()
 writeXmlReport out =
   Data.Text.Lazy.IO.writeFile out . XML.renderText XML.def . encode
 
--- Type that models the Junit XML format.
---
--- This is a stackoverflow question with some answers indicating the required
--- format.
--- https://stackoverflow.com/questions/4922867/what-is-the-junit-xml-format-specification-that-hudson-supports
---
--- Not all tags and attributes in the link above seem to get picked up in
--- Jenkins, so the types below are narrowed down to what Jenkins does display.
---
--- An example of the XML produced:
---
---     <?xml version="1.0" encoding="UTF-8"?>
---     <testsuites skipped="" errors="" failures="" tests="" time="">
---       <testsuite name="suite 1" tests="3">
---         <testcase name="test 1" classname="test.class" time="3">
---           <failure message="failure derscription">first failed</failure>
---           <system-out>stdout dumped here</system-out>
---           <system-err>stderr dumped here</system-err>
---         </testcase>
---         <testcase name="test 2" classname="test.class" time="2">
---           <error message="error description">second errored</error>
---           <system-out>stdout dumped here</system-out>
---           <system-err>stderr dumped here</system-err>
---         </testcase>
---       </testsuite>
---       <testsuite name="suite 2">
---         <testcase name="test 3" classname="test.class" time="1">
---           <system-out>stdout dumped here</system-out>
---           <system-err>stderr dumped here</system-err>
---         </testcase>
---       </testsuite>
---     </testsuites>
---
-data TestSuite
-  = TestSuite
-      { suiteName :: T.Text,
-        testCase :: XML.Element,
-        counts :: Counts
-      }
-
-data TestCase outcome where
-  TestCase ::
+-- | The report for a single test case.
+data TestReport outcome where
+  TestReport ::
     Outcome outcome =>
     { testName' :: T.Text,
       outcome' :: outcome,
@@ -85,32 +68,98 @@ data TestCase outcome where
       stderr' :: Maybe T.Text,
       time' :: Maybe Double
     } ->
-    TestCase
+    TestReport
       outcome
 
-inSuite :: T.Text -> TestCase outcome -> TestSuite
-inSuite name test@TestCase {outcome', time'} =
+-- | A test report annotated with the test suite it is part of.
+data TestSuite
+  = TestSuite
+      { suiteName :: T.Text,
+        testReport :: XML.Element,
+        counts :: Counts
+      }
+
+-- | Wrap a test report in a suite, allowing it to be added to the list of
+-- reports passed to 'writeXmlReports'.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ 'passed' "Passed test"
+--           & inSuite "Some test suite"
+--       ]
+--
+-- @
+inSuite :: T.Text -> TestReport outcome -> TestSuite
+inSuite name test@TestReport {outcome', time'} =
   TestSuite
     { suiteName = name,
-      testCase = encodeTestCase test,
+      testReport = encodeTestCase test,
       counts = (outcomeCounter outcome') {cumTime = fromMaybe 0 time'}
     }
 
-mapTest :: (a -> a) -> TestCase a -> TestCase a
+mapTest :: (a -> a) -> TestReport a -> TestReport a
 mapTest f test = test {outcome' = f (outcome' test)}
 
-stdout :: T.Text -> TestCase outcome -> TestCase outcome
+-- | Add the stdout produced running a test to the report for that test.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ 'passed' "A passing test"
+--           & stdout "Test ran succesfully!"
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+stdout :: T.Text -> TestReport outcome -> TestReport outcome
 stdout log test = test {stdout' = Just log}
 
-stderr :: T.Text -> TestCase outcome -> TestCase outcome
+-- | Add the stderr produced running a test to the report for that test.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ 'failed' "A failing test"
+--           & stderr "Expected 4, but got 2."
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+stderr :: T.Text -> TestReport outcome -> TestReport outcome
 stderr log test = test {stderr' = Just log}
 
-time :: Double -> TestCase outcome -> TestCase outcome
+-- | Add the running time of a test to the report for that test.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ 'passed' "A passing test"
+--           & time 0.003
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+time :: Double -> TestReport outcome -> TestReport outcome
 time seconds test = test {time' = Just seconds}
 
-passed :: T.Text -> TestCase Passed
+-- | Create a report for a passing test.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ passed "A passing test"
+--           & 'stdout' "Test ran succesfully!"
+--           & 'stderr' "Warning: don't overcook the vegetables!"
+--           & 'time' 0.003
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+passed :: T.Text -> TestReport Passed
 passed name =
-  TestCase
+  TestReport
     { testName' = name,
       outcome' = Passed,
       stdout' = Nothing,
@@ -118,9 +167,19 @@ passed name =
       time' = Nothing
     }
 
-skipped :: T.Text -> TestCase Skipped
+-- | Create a report for a skipped test.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ skipped "A skipped test"
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+skipped :: T.Text -> TestReport Skipped
 skipped name =
-  TestCase
+  TestReport
     { testName' = name,
       outcome' = Skipped,
       stdout' = Nothing,
@@ -128,9 +187,24 @@ skipped name =
       time' = Nothing
     }
 
-failed :: T.Text -> TestCase Failed
+-- | Create a report for a failed test.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ failed "A failing test"
+--           & 'stdout' "Running test..."
+--           & 'stderr' "Test failed: expected 3 slices of pizza but got one."
+--           & 'failureMessage' "Not enough pizza"
+--           & 'failureStackTrace' ["Pizza", "Pizzeria", "Italy"]
+--           & 'time' 0.08
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+failed :: T.Text -> TestReport Failed
 failed name =
-  TestCase
+  TestReport
     { testName' = name,
       outcome' = Failure Nothing [],
       stdout' = Nothing,
@@ -138,9 +212,24 @@ failed name =
       time' = Nothing
     }
 
-errored :: T.Text -> TestCase Errored
+-- | Create a report for a test that threw an error.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ errored "A test that threw an error"
+--           & 'stdout' "Running test..."
+--           & 'stderr' "Unexpected exception: BedTime"
+--           & 'errorMessage' "Operation canceled due to BedTimeOut"
+--           & 'errorStackTrace' ["Bed", "Sleep", "Night"]
+--           & 'time' 0.08
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+errored :: T.Text -> TestReport Errored
 errored name =
-  TestCase
+  TestReport
     { testName' = name,
       outcome' = Error Nothing [],
       stdout' = Nothing,
@@ -184,11 +273,33 @@ instance Outcome Failed where
 
   outcomeCounter _ = mempty {cumFailed = 1, cumTests = 1}
 
-failureMessage :: T.Text -> TestCase Failed -> TestCase Failed
+-- | Add an error message to the report of a failed test.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ failed "A failing test"
+--           & failureMessage "Laundromat exceeds noise tolerance."
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+failureMessage :: T.Text -> TestReport Failed -> TestReport Failed
 failureMessage msg test =
   mapTest (\outcome -> outcome {failureMessage' = Just msg}) test
 
-failureStackTrace :: [T.Text] -> TestCase Failed -> TestCase Failed
+-- | Add a stack trace to the report of a failed test.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ failed "A failing test"
+--           & failureStackTrace ["AnkleClass", "LegClass", "LimbClass"]
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+failureStackTrace :: [T.Text] -> TestReport Failed -> TestReport Failed
 failureStackTrace trace test =
   mapTest (\outcome -> outcome {failureStackTrace' = trace}) test
 
@@ -206,11 +317,33 @@ instance Outcome Errored where
 
   outcomeCounter _ = mempty {cumErrored = 1, cumTests = 1}
 
-errorMessage :: T.Text -> TestCase Errored -> TestCase Errored
+-- | Add an error message to the report for a test that threw an exception.
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ errored "A test that threw an error"
+--           & errorMessage "TooMuchNetflixException"
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+errorMessage :: T.Text -> TestReport Errored -> TestReport Errored
 errorMessage msg test =
   mapTest (\outcome -> outcome {errorMessage' = Just msg}) test
 
-errorStackTrace :: [T.Text] -> TestCase Errored -> TestCase Errored
+-- | Add a stack trace to a report for a test that threw an exception
+--
+-- @
+--     import Data.Function ((&))
+--
+--     'writeXmlReport' "report.xml"
+--       [ errored "A test that threw an error"
+--           & errorStackTrace ["at closeCurtain line 3", "at goToSleep line 8"]
+--           & 'inSuite' "Test suite"
+--       ]
+-- @
+errorStackTrace :: [T.Text] -> TestReport Errored -> TestReport Errored
 errorStackTrace trace test =
   mapTest (\outcome -> outcome {errorStackTrace' = trace}) test
 
@@ -259,10 +392,10 @@ encodeSuite suite =
       XML.Element
         "testsuite"
         (fromList $ ("name", suiteName (NonEmpty.head suite)) : countAttributes suiteCounts)
-        (NonEmpty.toList (XML.NodeElement . testCase <$> suite))
+        (NonEmpty.toList (XML.NodeElement . testReport <$> suite))
 
-encodeTestCase :: TestCase a -> XML.Element
-encodeTestCase TestCase {testName', outcome', stdout', stderr', time'} =
+encodeTestCase :: TestReport a -> XML.Element
+encodeTestCase TestReport {testName', outcome', stdout', stderr', time'} =
   XML.Element "testcase" attributes children
   where
     attributes =
