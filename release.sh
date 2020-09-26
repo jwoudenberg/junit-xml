@@ -10,6 +10,7 @@ bundle="$name-$version.tar.gz"
 grep "^# $version$" < CHANGELOG.md
 
 # check copyright year is current year
+grep "^copyright: $(date +'%Y')" < package.yaml
 grep "Copyright (c) $(date +'%Y')" < LICENSE
 
 # check github release tag exists
