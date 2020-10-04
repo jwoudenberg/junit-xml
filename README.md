@@ -1,4 +1,4 @@
-![travis-ci-badge](https://travis-ci.org/jwoudenberg/junit-xml.svg?branch=trunk)
+[![Build Status](https://travis-ci.org/jwoudenberg/junit-xml.svg?branch=trunk)](https://travis-ci.org/jwoudenberg/junit-xml)
 
 # junit-xml
 
