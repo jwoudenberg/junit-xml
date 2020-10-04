@@ -238,7 +238,6 @@ errored name =
     }
 
 class Outcome a where
-
   outcomeToXML :: a -> Maybe XML.Element
 
   outcomeCounter :: a -> Counts
@@ -246,7 +245,6 @@ class Outcome a where
 data Passed = Passed
 
 instance Outcome Passed where
-
   outcomeToXML _ = Nothing
 
   outcomeCounter _ = mempty {cumTests = 1}
@@ -254,7 +252,6 @@ instance Outcome Passed where
 data Skipped = Skipped
 
 instance Outcome Skipped where
-
   outcomeToXML _ = Just $ XML.Element "skipped" mempty []
 
   outcomeCounter _ = mempty {cumSkipped = 1, cumTests = 1}
@@ -268,7 +265,6 @@ data Failed
       }
 
 instance Outcome Failed where
-
   outcomeToXML = Just . encodeFailure
 
   outcomeCounter _ = mempty {cumFailed = 1, cumTests = 1}
@@ -312,7 +308,6 @@ data Errored
       }
 
 instance Outcome Errored where
-
   outcomeToXML = Just . encodeError
 
   outcomeCounter _ = mempty {cumErrored = 1, cumTests = 1}
@@ -357,13 +352,14 @@ data Counts
       }
 
 instance Semigroup Counts where
-  c1 <> c2 = Counts
-    { cumTests = cumTests c1 + cumTests c2,
-      cumFailed = cumFailed c1 + cumFailed c2,
-      cumErrored = cumErrored c1 + cumErrored c2,
-      cumSkipped = cumSkipped c1 + cumSkipped c2,
-      cumTime = cumTime c1 + cumTime c2
-    }
+  c1 <> c2 =
+    Counts
+      { cumTests = cumTests c1 + cumTests c2,
+        cumFailed = cumFailed c1 + cumFailed c2,
+        cumErrored = cumErrored c1 + cumErrored c2,
+        cumSkipped = cumSkipped c1 + cumSkipped c2,
+        cumTime = cumTime c1 + cumTime c2
+      }
 
 instance Monoid Counts where
   mempty = Counts 0 0 0 0 0
