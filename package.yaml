@@ -1,5 +1,5 @@
 name: junit-xml
-version: 0.1.0.1
+version: 0.1.0.2
 synopsis: Producing JUnit-style XML test reports.
 description: Please see the README at <https://github.com/jwoudenberg/junit-xml>.
 author: Jasper Woudenberg
@@ -28,7 +28,7 @@ tests:
     - base
     - junit-xml
     - tasty-golden >= 2.3 && < 2.4
-    - tasty >= 1.1 && < 1.4
+    - tasty >= 1.1 && < 1.5
     main: Main.hs
     source-dirs:
     - test
