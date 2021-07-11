@@ -9,18 +9,21 @@ import Data.Function ((&))
 import Test.Tasty
 import Test.Tasty.Golden as Golden
 import Text.XML.JUnit
+import System.FilePath((</>))
+import System.IO.Temp(withSystemTempDirectory)
 
-main = defaultMain tests
+main :: IO ()
+main = withSystemTempDirectory "haskell-junit-xml-tests" (\tmp -> defaultMain (tests tmp))
 
-tests :: TestTree
-tests =
+tests :: FilePath -> TestTree
+tests tmpdir =
   Golden.goldenVsFile
     "Generate sample XML"
-    "test/sample-report.xml"
+    ("test" </> "sample-report.xml")
     out
     (writeXmlReport out suites)
   where
-    out = "/tmp/junit-xml-haskell-test.xml"
+    out = tmpdir </> "junit-xml-haskell-test.xml"
     suites =
       [ passed "Passed test"
           & stdout "passing stdout"
