@@ -26,9 +26,11 @@ tests:
   spec:
     dependencies:
     - base
+    - filepath
     - junit-xml
     - tasty-golden >= 2.3 && < 2.4
     - tasty >= 1.1 && < 1.5
+    - temporary
     main: Main.hs
     source-dirs:
     - test
