@@ -1,3 +1,7 @@
+# 0.1.0.4
+
+- Expand version bounds to include xml-conduit 1.10.
+
 # 0.1.0.3
 
 - Expand version bounds to include tasty 1.5.

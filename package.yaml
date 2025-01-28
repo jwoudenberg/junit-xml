@@ -1,10 +1,10 @@
 name: junit-xml
-version: 0.1.0.3
+version: 0.1.0.4
 synopsis: Producing JUnit-style XML test reports.
 description: Please see the README at <https://github.com/jwoudenberg/junit-xml>.
 author: Jasper Woudenberg
 maintainer: mail@jasperwoudenberg.com
-copyright: 2023 Jasper Woudenberg
+copyright: 2025 Jasper Woudenberg
 homepage: https://github.com/jwoudenberg/junit-xml#readme
 license-file: LICENSE
 category: Web
@@ -18,7 +18,7 @@ library:
   dependencies:
   - base >= 4.10.1.0 && < 5
   - text
-  - xml-conduit >= 1.5.0 && < 1.10
+  - xml-conduit >= 1.5.0 && < 1.11
   exposed-modules:
   - Text.XML.JUnit
   source-dirs: src
